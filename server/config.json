@@ -1,0 +1,13 @@
+{
+    "host": "0.0.0.0",
+    "port": 443,
+    "tls_cert_file": "server.crt",
+    "tls_key_file": "server.key",
+    "pre_shared_key": "your-32-byte-pre-shared-key-here!!",
+    "max_clients": 100,
+    "tunnel_interface": "tun0",
+    "dns_servers": ["8.8.8.8", "8.8.4.4", "1.1.1.1"],
+    "allowed_ips": ["0.0.0.0/0"],
+    "fake_domain_name": "api.cloudsync-enterprise.com",
+    "enable_domain_fronting": true
+} 

@@ -1,0 +1,10 @@
+{
+    "server_url": "wss://your-server.com:443/ws",
+    "pre_shared_key": "your-32-byte-pre-shared-key-here!!",
+    "dns_servers": ["8.8.8.8", "8.8.4.4"],
+    "local_ip": "10.8.0.2",
+    "auto_connect": true,
+    "reconnect_delay": 5,
+    "health_check_interval": 30,
+    "fake_domain_name": "api.cloudsync-enterprise.com"
+} 
