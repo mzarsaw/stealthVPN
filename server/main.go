@@ -74,6 +74,10 @@ func NewVPNServer(config *ServerConfig) (*VPNServer, error) {
 			return true // Allow all origins for now
 		},
 		Subprotocols: []string{"chat", "echo"}, // Fake subprotocols to look legitimate
+		HandshakeTimeout: 30 * time.Second,
+		ReadBufferSize:  4096,
+		WriteBufferSize: 4096,
+		EnableCompression: true,
 	}
 	
 	return &VPNServer{
@@ -185,8 +189,12 @@ func (s *VPNServer) setupFakeWebHandlers() {
 
 // handleWebSocket handles WebSocket connections (actual VPN traffic)
 func (s *VPNServer) handleWebSocket(w http.ResponseWriter, r *http.Request) {
+	// Log connection attempt
+	log.Printf("WebSocket connection attempt from %s", r.RemoteAddr)
+	
 	// Verify this looks like a legitimate WebSocket upgrade
 	if r.Header.Get("Upgrade") != "websocket" {
+		log.Printf("Invalid upgrade header from %s", r.RemoteAddr)
 		http.Error(w, "Bad Request", http.StatusBadRequest)
 		return
 	}
@@ -194,26 +202,31 @@ func (s *VPNServer) handleWebSocket(w http.ResponseWriter, r *http.Request) {
 	// Add timing jitter to avoid traffic analysis
 	s.stealth.AddTimingJitter()
 	
+	// Log TLS version and cipher suite
+	if r.TLS != nil {
+		log.Printf("TLS Version: %x, Cipher Suite: %x from %s", r.TLS.Version, r.TLS.CipherSuite, r.RemoteAddr)
+	}
+	
 	conn, err := s.upgrader.Upgrade(w, r, nil)
 	if err != nil {
-		log.Printf("WebSocket upgrade failed: %v", err)
+		log.Printf("WebSocket upgrade failed from %s: %v", r.RemoteAddr, err)
 		return
 	}
+	
+	// Set read/write deadlines
+	conn.SetReadDeadline(time.Now().Add(60 * time.Second))
+	conn.SetWriteDeadline(time.Now().Add(10 * time.Second))
+	
 	defer conn.Close()
 	
 	// Perform key exchange
 	session, err := s.performKeyExchange(conn, r.RemoteAddr)
 	if err != nil {
-		log.Printf("Key exchange failed: %v", err)
+		log.Printf("Key exchange failed with %s: %v", r.RemoteAddr, err)
 		return
 	}
 	
-	// Add client to active sessions
-	clientID := r.RemoteAddr
-	s.clients[clientID] = session
-	defer delete(s.clients, clientID)
-	
-	log.Printf("Client connected: %s", clientID)
+	log.Printf("Client connected successfully from %s", r.RemoteAddr)
 	
 	// Handle client session
 	s.handleClientSession(session)
