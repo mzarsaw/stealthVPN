@@ -64,9 +64,23 @@ func (c *VPNClient) Connect() error {
 	log.Println("Connecting to stealth VPN server...")
 	
 	// Create TUN interface
-	if err := c.createTunInterface(); err != nil {
-		return fmt.Errorf("failed to create TUN interface: %v", err)
+	config := water.Config{
+		DeviceType: water.TUN,
 	}
+	
+	iface, err := water.New(config)
+	if err != nil {
+		return err
+	}
+	
+	c.tunInterface = iface
+	
+	// Configure interface IP
+	if err := c.configureTunInterface(); err != nil {
+		return err
+	}
+	
+	log.Printf("Created TUN interface: %s", iface.Name())
 	
 	// Connect to server
 	if err := c.connectToServer(); err != nil {
@@ -98,14 +112,6 @@ func (c *VPNClient) createTunInterface() error {
 	// Create TUN interface
 	config := water.Config{
 		DeviceType: water.TUN,
-	}
-	
-	// Platform-specific configuration
-	if runtime.GOOS == "windows" {
-		config.PlatformSpecificParams = water.PlatformSpecificParams{
-			ComponentID:   "tap0901",
-			InterfaceName: "StealthVPN",
-		}
 	}
 	
 	iface, err := water.New(config)
