@@ -18,15 +18,12 @@ apt update && apt upgrade -y
 echo "📦 Installing required packages..."
 apt install -y wget curl git build-essential unzip
 
-# Install Go if not present
+# Install Go using package manager
 if ! command -v go &> /dev/null; then
     echo "📦 Installing Go..."
-    wget https://go.dev/dl/go1.21.5.linux-amd64.tar.gz
-    tar -C /usr/local -xzf go1.21.5.linux-amd64.tar.gz
-    echo 'export PATH=$PATH:/usr/local/go/bin' >> /etc/profile
-    source /etc/profile
-    export PATH=$PATH:/usr/local/go/bin
-    rm go1.21.5.linux-amd64.tar.gz
+    add-apt-repository -y ppa:longsleep/golang-backports
+    apt update
+    apt install -y golang-go
 fi
 
 # Create directories
