@@ -24,16 +24,9 @@ if ! command -v go &> /dev/null; then
     wget https://go.dev/dl/go1.21.5.linux-amd64.tar.gz
     tar -C /usr/local -xzf go1.21.5.linux-amd64.tar.gz
     echo 'export PATH=$PATH:/usr/local/go/bin' >> /etc/profile
-    echo 'export PATH=$PATH:/usr/local/go/bin' >> /home/stealthvpn/.bashrc
     source /etc/profile
     export PATH=$PATH:/usr/local/go/bin
     rm go1.21.5.linux-amd64.tar.gz
-fi
-
-# Create stealthvpn user
-echo "👤 Creating stealthvpn user..."
-if ! id "stealthvpn" &>/dev/null; then
-    useradd -r -m -s /bin/bash stealthvpn
 fi
 
 # Create directories
@@ -41,14 +34,11 @@ echo "📁 Creating directories..."
 mkdir -p /opt/stealthvpn
 mkdir -p /etc/stealthvpn
 mkdir -p /var/log/stealthvpn
-chown -R stealthvpn:stealthvpn /opt/stealthvpn
-chown -R stealthvpn:stealthvpn /var/log/stealthvpn
 
 # Generate self-signed certificate for testing
 echo "🔒 Generating TLS certificate..."
 openssl req -x509 -newkey rsa:4096 -keyout /etc/stealthvpn/server.key -out /etc/stealthvpn/server.crt -days 365 -nodes -subj "/C=US/ST=State/L=City/O=Organization/CN=api.cloudsync-enterprise.com"
 chmod 600 /etc/stealthvpn/server.key
-chown stealthvpn:stealthvpn /etc/stealthvpn/server.key /etc/stealthvpn/server.crt
 
 # Generate random pre-shared key
 echo "🔑 Generating pre-shared key..."
@@ -78,7 +68,6 @@ if [ -f "server/main.go" ]; then
     echo "📋 Copying server code..."
     cp -r . /opt/stealthvpn/
     cd /opt/stealthvpn
-    chown -R stealthvpn:stealthvpn .
 else
     echo "⚠️  Server code not found. Please copy the source code to /opt/stealthvpn/"
 fi
@@ -86,8 +75,8 @@ fi
 # Build server
 echo "🔨 Building server..."
 cd /opt/stealthvpn
-sudo -u stealthvpn bash -c 'source ~/.bashrc && go mod tidy'
-sudo -u stealthvpn bash -c 'source ~/.bashrc && go build -o stealthvpn-server server/main.go'
+go mod tidy
+go build -o stealthvpn-server server/main.go
 
 # Create systemd service
 echo "⚙️  Creating systemd service..."
@@ -98,9 +87,6 @@ After=network.target
 
 [Service]
 Type=simple
-User=stealthvpn
-Group=stealthvpn
-WorkingDirectory=/opt/stealthvpn
 ExecStart=/opt/stealthvpn/stealthvpn-server -config /etc/stealthvpn/config.json
 Restart=always
 RestartSec=5
