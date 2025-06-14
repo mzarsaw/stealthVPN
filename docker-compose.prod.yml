@@ -1,0 +1,102 @@
+version: '3.8'
+
+services:
+  stealthvpn:
+    image: stealthvpn:latest
+    container_name: stealthvpn-server
+    restart: always
+    
+    # Required capabilities (more restrictive than privileged)
+    cap_add:
+      - NET_ADMIN
+      - NET_RAW
+    cap_drop:
+      - ALL
+    
+    # Security options
+    security_opt:
+      - no-new-privileges:true
+    
+    # Read-only root filesystem for security
+    read_only: true
+    
+    # Temporary filesystems for writable areas
+    tmpfs:
+      - /tmp
+      - /var/run
+      - /var/log/stealthvpn
+    
+    ports:
+      - "443:443/tcp"
+    
+    environment:
+      # IMPORTANT: Set these before deploying!
+      PRE_SHARED_KEY: "${STEALTHVPN_PSK}"
+      FAKE_DOMAIN: "${STEALTHVPN_DOMAIN:-api.cloudsync-enterprise.com}"
+      PRIVILEGED_MODE: "false"
+    
+    volumes:
+      # Configuration (read-only in production)
+      - ./config/config.json:/etc/stealthvpn/config.json:ro
+      
+      # Certificates (read-only)
+      - ./certs/fullchain.pem:/etc/stealthvpn/server.crt:ro
+      - ./certs/privkey.pem:/etc/stealthvpn/server.key:ro
+      
+      # Persistent logs (optional)
+      - stealthvpn-logs:/var/log/stealthvpn
+    
+    # Required devices
+    devices:
+      - /dev/net/tun:/dev/net/tun
+    
+    # System controls
+    sysctls:
+      - net.ipv4.ip_forward=1
+      - net.ipv6.conf.all.disable_ipv6=1
+    
+    # Resource limits
+    deploy:
+      resources:
+        limits:
+          cpus: '2'
+          memory: 1G
+        reservations:
+          cpus: '0.5'
+          memory: 256M
+    
+    # Health check
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "--no-check-certificate", "https://localhost/api/status"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    
+    # Logging
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "50m"
+        max-file: "10"
+        compress: "true"
+    
+    # Network isolation
+    networks:
+      vpn_network:
+        ipv4_address: 172.20.0.10
+
+# Volumes
+volumes:
+  stealthvpn-logs:
+    driver: local
+
+# Networks
+networks:
+  vpn_network:
+    driver: bridge
+    ipam:
+      driver: default
+      config:
+        - subnet: 172.20.0.0/24
+          gateway: 172.20.0.1 

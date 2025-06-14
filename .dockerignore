@@ -1,0 +1,58 @@
+# Git files
+.git
+.gitignore
+
+# Documentation
+*.md
+docs/
+LICENSE
+
+# Build artifacts
+build/
+dist/
+*.exe
+*.dll
+*.so
+*.dylib
+
+# Development files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Test files
+*_test.go
+test/
+tests/
+
+# Docker files (don't copy these into the image)
+Dockerfile
+docker-compose*.yml
+.dockerignore
+
+# Local configuration
+docker/
+certs/
+config/
+*.env
+
+# Logs
+*.log
+logs/
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Temporary files
+tmp/
+temp/
+
+# Scripts (except needed ones)
+scripts/setup-server.sh
+scripts/build-clients.sh
+
+# Client code (not needed for server image)
+client/android/README.md 

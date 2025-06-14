@@ -26,7 +26,25 @@ A next-generation VPN designed to bypass deep packet inspection (DPI) and firewa
 ## Quick Start
 
 ### Server Setup
+
+#### Option 1: Docker (Recommended)
 ```bash
+# Quick start with Docker
+docker-compose up -d
+
+# Or use the deploy script
+./scripts/docker-deploy.sh start
+
+# View logs
+docker-compose logs -f
+```
+
+#### Option 2: Traditional Installation
+```bash
+# Automated setup (Linux)
+sudo ./scripts/setup-server.sh
+
+# Or manual build
 cd server
 go build -o stealthvpn-server
 ./stealthvpn-server -config config.json

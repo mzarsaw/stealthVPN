@@ -217,4 +217,51 @@ info:
 	@echo "Go version: $$(go version)"
 	@echo "Git commit: $$(git describe --tags --always --dirty)"
 	@echo "Build time: $$(date)"
-	@echo "Build dir:  $(BUILD_DIR)" 
+	@echo "Build dir:  $(BUILD_DIR)"
+
+# Docker commands
+docker-build:
+	@echo "Building Docker image..."
+	docker build -t stealthvpn:latest .
+
+docker-run: docker-build
+	@echo "Running StealthVPN in Docker..."
+	docker-compose up -d
+	@echo ""
+	@echo "Server is starting. Check logs with: docker-compose logs -f"
+
+docker-run-prod: docker-build
+	@echo "Running StealthVPN in production mode..."
+	@if [ -z "$$STEALTHVPN_PSK" ]; then \
+		echo "Error: STEALTHVPN_PSK not set"; \
+		echo "Generate one with: make docker-psk"; \
+		exit 1; \
+	fi
+	docker-compose -f docker-compose.prod.yml up -d
+
+docker-stop:
+	@echo "Stopping StealthVPN..."
+	docker-compose down
+
+docker-logs:
+	docker-compose logs -f
+
+docker-status:
+	@echo "Container Status:"
+	@docker-compose ps
+	@echo ""
+	@echo "Health Check:"
+	@docker inspect stealthvpn-server --format='{{.State.Health.Status}}' 2>/dev/null || echo "Not running"
+
+docker-psk:
+	@echo "Generating pre-shared key..."
+	@openssl rand -base64 32 | tr -d "=+/" | cut -c1-32
+
+docker-clean:
+	@echo "Cleaning Docker resources..."
+	docker-compose down -v
+	docker rmi stealthvpn:latest 2>/dev/null || true
+
+docker-shell:
+	@echo "Opening shell in container..."
+	docker exec -it stealthvpn-server sh 

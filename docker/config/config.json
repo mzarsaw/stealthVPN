@@ -2,8 +2,8 @@
     "server": {
         "port": 443,
         "host": "0.0.0.0",
-        "tls_cert": "/etc/stealthvpn/server.crt",
-        "tls_key": "/etc/stealthvpn/server.key"
+        "tls_cert_file": "/etc/stealthvpn/server.crt",
+        "tls_key_file": "/etc/stealthvpn/server.key"
     },
     "vpn": {
         "subnet": "10.8.0.0/24",
@@ -28,7 +28,11 @@
         "pre_shared_key": "",
         "perfect_forward_secrecy": true,
         "key_rotation_interval": 3600,
-        "max_clients": 50
+        "max_clients": 50,
+        "tunnel_interface": "tun0",
+        "allowed_ips": ["0.0.0.0/0"],
+        "fake_domain_name": "api.cloudsync-enterprise.com",
+        "enable_domain_fronting": true
     },
     "logging": {
         "level": "info",

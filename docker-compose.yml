@@ -1,0 +1,78 @@
+version: '3.8'
+
+services:
+  stealthvpn:
+    build: .
+    image: stealthvpn:latest
+    container_name: stealthvpn-server
+    restart: unless-stopped
+    
+    # Required capabilities for VPN functionality
+    cap_add:
+      - NET_ADMIN
+      - SYS_MODULE
+    
+    # Required for iptables and kernel modules
+    privileged: true
+    
+    # Network mode - can use host for better performance
+    # network_mode: host
+    
+    ports:
+      - "443:443"
+    
+    environment:
+      # Pre-shared key - generate with: openssl rand -base64 32 | tr -d "=+/" | cut -c1-32
+      # PRE_SHARED_KEY: "your-32-character-pre-shared-key"
+      
+      # Fake domain name for stealth
+      FAKE_DOMAIN: "api.cloudsync-enterprise.com"
+      
+      # Port configuration (default 443)
+      # PORT: 443
+      
+      # Run in privileged mode for full functionality
+      PRIVILEGED_MODE: "true"
+    
+    volumes:
+      # Configuration and certificates
+      - ./docker/config:/etc/stealthvpn
+      
+      # Logs
+      - ./docker/logs:/var/log/stealthvpn
+      
+      # Optional: Mount real certificates
+      # - ./certs/fullchain.pem:/etc/stealthvpn/server.crt:ro
+      # - ./certs/privkey.pem:/etc/stealthvpn/server.key:ro
+    
+    # Required devices
+    devices:
+      - /dev/net/tun
+    
+    # System controls for VPN functionality
+    sysctls:
+      - net.ipv4.ip_forward=1
+      - net.ipv4.conf.all.src_valid_mark=1
+    
+    # Health check
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "https://localhost/api/status"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    
+    # Logging configuration
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+# Optional: Create a custom network
+networks:
+  default:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.20.0.0/16 
