@@ -4,10 +4,20 @@ set -e
 echo "🔧 StealthVPN Client Build Script"
 echo "================================="
 
-# Check if Go is installed
+# Check if running as root
+if [[ $EUID -ne 0 ]]; then
+   echo "This script must be run as root" 
+   exit 1
+fi
+
+# Install Go if not present
 if ! command -v go &> /dev/null; then
-    echo "❌ Go is not installed. Please install Go 1.21 or later."
-    exit 1
+    echo "📦 Installing Go..."
+    apt update
+    apt install -y software-properties-common
+    add-apt-repository -y ppa:longsleep/golang-backports
+    apt update
+    apt install -y golang-go
 fi
 
 # Create build directory
