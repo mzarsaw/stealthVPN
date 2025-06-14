@@ -63,6 +63,7 @@ EOF
 # Copy source code if in development directory
 if [ -f "server/main.go" ]; then
     echo "📋 Copying server code..."
+    mkdir -p /opt/stealthvpn
     cp -r . /opt/stealthvpn/
     cd /opt/stealthvpn
 else
@@ -72,8 +73,20 @@ fi
 # Build server
 echo "🔨 Building server..."
 cd /opt/stealthvpn
+export GO111MODULE=on
+
+# Ensure module is properly initialized
+if [ ! -f "go.mod" ]; then
+    go mod init stealthvpn
+fi
+
+# Update module dependencies
+go mod edit -replace stealthvpn/pkg/protocol=./pkg/protocol
 go mod tidy
-go build -o stealthvpn-server server/main.go
+go mod download
+
+# Build the server
+CGO_ENABLED=0 go build -o stealthvpn-server server/main.go
 
 # Create systemd service
 echo "⚙️  Creating systemd service..."
