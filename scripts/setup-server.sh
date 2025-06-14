@@ -24,6 +24,7 @@ if ! command -v go &> /dev/null; then
     wget https://go.dev/dl/go1.21.5.linux-amd64.tar.gz
     tar -C /usr/local -xzf go1.21.5.linux-amd64.tar.gz
     echo 'export PATH=$PATH:/usr/local/go/bin' >> /etc/profile
+    echo 'export PATH=$PATH:/usr/local/go/bin' >> /home/stealthvpn/.bashrc
     source /etc/profile
     export PATH=$PATH:/usr/local/go/bin
     rm go1.21.5.linux-amd64.tar.gz
@@ -85,8 +86,8 @@ fi
 # Build server
 echo "🔨 Building server..."
 cd /opt/stealthvpn
-sudo -u stealthvpn go mod tidy
-sudo -u stealthvpn go build -o stealthvpn-server server/main.go
+sudo -u stealthvpn bash -c 'source ~/.bashrc && go mod tidy'
+sudo -u stealthvpn bash -c 'source ~/.bashrc && go build -o stealthvpn-server server/main.go'
 
 # Create systemd service
 echo "⚙️  Creating systemd service..."
