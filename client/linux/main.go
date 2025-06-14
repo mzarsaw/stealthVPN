@@ -32,15 +32,13 @@ func NewClient(serverURL, presharedKey string) *Client {
 }
 
 func (c *Client) configureTunInterface() error {
-	// For macOS, we need to use ifconfig to configure the interface
-	// The interface name can be obtained from c.tunInterface.Name()
 	name := c.tunInterface.Name()
 	
-	// Configure IP address and routing
 	commands := [][]string{
-		{"ifconfig", name, "10.8.0.2", "10.8.0.1", "up"},
-		{"route", "add", "-net", "0.0.0.0/1", "-interface", name},
-		{"route", "add", "-net", "128.0.0.0/1", "-interface", name},
+		{"ip", "addr", "add", "10.8.0.2/24", "dev", name},
+		{"ip", "link", "set", name, "up"},
+		{"ip", "route", "add", "0.0.0.0/1", "dev", name},
+		{"ip", "route", "add", "128.0.0.0/1", "dev", name},
 	}
 
 	for _, cmd := range commands {
@@ -53,7 +51,6 @@ func (c *Client) configureTunInterface() error {
 }
 
 func (c *Client) Start() error {
-	// Create TUN interface
 	config := water.Config{
 		DeviceType: water.TUN,
 	}
@@ -65,14 +62,12 @@ func (c *Client) Start() error {
 
 	c.tunInterface = iface
 
-	// Configure interface IP
 	if err := c.configureTunInterface(); err != nil {
 		return err
 	}
 
 	log.Printf("Created TUN interface: %s", iface.Name())
 
-	// Connect to server
 	u := url.URL{Scheme: "ws", Host: c.serverURL, Path: "/vpn"}
 	headers := http.Header{
 		"X-PSK": []string{c.presharedKey},
@@ -84,7 +79,6 @@ func (c *Client) Start() error {
 	}
 	c.wsConn = conn
 
-	// Start packet forwarding
 	go c.tunToWs()
 	go c.wsToTun()
 
@@ -164,7 +158,6 @@ func main() {
 
 	client := NewClient(*serverURL, *presharedKey)
 
-	// Handle interrupt signal
 	sigChan := make(chan os.Signal, 1)
 	signal.Notify(sigChan, syscall.SIGINT, syscall.SIGTERM)
 
@@ -175,12 +168,10 @@ func main() {
 		os.Exit(0)
 	}()
 
-	// Start client
 	log.Printf("Connecting to %s...", *serverURL)
 	if err := client.Start(); err != nil {
 		log.Fatalf("Error starting client: %v", err)
 	}
 
-	// Keep running
 	select {}
 } 
