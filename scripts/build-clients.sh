@@ -34,33 +34,47 @@ echo "✅ Windows client built: build/stealthvpn-windows-amd64.exe"
 
 # Build Linux client
 echo "🐧 Building Linux client..."
+cd client/linux
 GOOS=linux GOARCH=amd64 go build -ldflags="-s -w" -o ../../build/stealthvpn-linux-amd64 .
+cd ../..
 echo "✅ Linux client built: build/stealthvpn-linux-amd64"
 
-# Build macOS client
-echo "🍎 Building macOS client..."
+# Build macOS Intel client
+echo "🍎 Building macOS Intel client..."
+cd client/macos
 GOOS=darwin GOARCH=amd64 go build -ldflags="-s -w" -o ../../build/stealthvpn-macos-amd64 .
-echo "✅ macOS client built: build/stealthvpn-macos-amd64"
+cd ../..
+echo "✅ macOS Intel client built: build/stealthvpn-macos-amd64"
+
+# Build macOS ARM64 (Apple Silicon) client
+echo "🍎 Building macOS Apple Silicon client..."
+cd client/macos
+GOOS=darwin GOARCH=arm64 go build -ldflags="-s -w" -o ../../build/stealthvpn-macos-arm64 .
+cd ../..
+echo "✅ macOS Apple Silicon client built: build/stealthvpn-macos-arm64"
 
 cd ../..
 
-# Build Android client (requires gomobile)
-echo "📱 Building Android client..."
-if command -v gomobile &> /dev/null; then
-    cd client/android
-    gomobile bind -target=android -o ../../build/stealthvpn.aar .
-    echo "✅ Android library built: build/stealthvpn.aar"
-    cd ../..
-else
+# Install and setup Android build tools if needed
+if ! command -v gomobile &> /dev/null; then
     echo "⚠️  gomobile not found. Installing..."
+    # Install gomobile and its dependencies
     go install golang.org/x/mobile/cmd/gomobile@latest
-    gomobile init
+    go install golang.org/x/mobile/cmd/gobind@latest
     
-    cd client/android
-    gomobile bind -target=android -o ../../build/stealthvpn.aar .
-    echo "✅ Android library built: build/stealthvpn.aar"
-    cd ../..
+    # Add Go bin directory to PATH
+    export PATH=$PATH:$(go env GOPATH)/bin
+    
+    echo "🔧 Initializing gomobile..."
+    gomobile init
 fi
+
+# Build Android client
+echo "📱 Building Android client..."
+cd client/android
+gomobile bind -target=android/arm64 -o ../../build/stealthvpn.aar .
+cd ../..
+echo "✅ Android client built: build/stealthvpn.aar"
 
 # Create client configuration templates
 echo "⚙️  Creating client configuration templates..."
