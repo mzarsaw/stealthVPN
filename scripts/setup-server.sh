@@ -16,7 +16,7 @@ apt update && apt upgrade -y
 
 # Install required packages
 echo "📦 Installing required packages..."
-apt install -y wget curl git build-essential unzip
+apt install -y wget curl git build-essential unzip iptables-persistent
 
 # Install Go using package manager
 if ! command -v go &> /dev/null; then
@@ -120,6 +120,8 @@ iptables -A FORWARD -s 10.8.0.0/24 -j ACCEPT
 iptables -A FORWARD -d 10.8.0.0/24 -j ACCEPT
 
 # Save iptables rules
+echo "💾 Saving iptables rules..."
+mkdir -p /etc/iptables
 iptables-save > /etc/iptables/rules.v4
 
 # Start and enable service
