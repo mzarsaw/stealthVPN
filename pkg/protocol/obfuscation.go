@@ -45,9 +45,9 @@ func NewStealthProtocol() *StealthProtocol {
 			"assets.platform.com",
 		},
 		tlsConfig: &tls.Config{
-			MinVersion:               tls.VersionTLS10,
+			MinVersion:               tls.VersionTLS12,
 			MaxVersion:               tls.VersionTLS13,
-			CurvePreferences:         []tls.CurveID{tls.X25519, tls.CurveP256, tls.CurveP384, tls.CurveP521},
+			CurvePreferences:         []tls.CurveID{tls.X25519, tls.CurveP256},
 			PreferServerCipherSuites: true,
 			CipherSuites: []uint16{
 				tls.TLS_AES_128_GCM_SHA256,
@@ -59,10 +59,8 @@ func NewStealthProtocol() *StealthProtocol {
 				tls.TLS_ECDHE_RSA_WITH_CHACHA20_POLY1305,
 				tls.TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256,
 				tls.TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256,
-				tls.TLS_RSA_WITH_AES_256_GCM_SHA384,
-				tls.TLS_RSA_WITH_AES_128_GCM_SHA256,
 			},
-			SessionTicketsDisabled: false,
+			SessionTicketsDisabled: true,
 			ClientSessionCache:     tls.NewLRUClientSessionCache(128),
 		},
 		minPadding: 16,

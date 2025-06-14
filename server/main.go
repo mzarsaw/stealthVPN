@@ -71,13 +71,25 @@ func NewVPNServer(config *ServerConfig) (*VPNServer, error) {
 	
 	upgrader := websocket.Upgrader{
 		CheckOrigin: func(r *http.Request) bool {
-			return true // Allow all origins for now
+			// Add more strict origin checking
+			if r.Header.Get("Origin") == "" {
+				return false
+			}
+			return true
 		},
-		Subprotocols: []string{"chat", "echo"}, // Fake subprotocols to look legitimate
+		Subprotocols: []string{"binary"}, // Use a more generic protocol
 		HandshakeTimeout: 30 * time.Second,
-		ReadBufferSize:  4096,
-		WriteBufferSize: 4096,
+		ReadBufferSize:  8192,  // Increased buffer size
+		WriteBufferSize: 8192,  // Increased buffer size
 		EnableCompression: true,
+		Error: func(w http.ResponseWriter, r *http.Request, status int, reason error) {
+			// Don't expose internal errors
+			if status == http.StatusInternalServerError {
+				http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+				return
+			}
+			http.Error(w, reason.Error(), status)
+		},
 	}
 	
 	return &VPNServer{
@@ -98,6 +110,26 @@ func (s *VPNServer) Start() error {
 	http.HandleFunc("/ws", s.handleWebSocket)
 	http.HandleFunc("/api/status", s.handleStatus)
 	
+	// Add HTTP to HTTPS redirect
+	go func() {
+		redirectHandler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			target := "https://" + r.Host + r.URL.Path
+			if len(r.URL.RawQuery) > 0 {
+				target += "?" + r.URL.RawQuery
+			}
+			http.Redirect(w, r, target, http.StatusMovedPermanently)
+		})
+		
+		redirectServer := &http.Server{
+			Addr:    ":80",
+			Handler: redirectHandler,
+		}
+		
+		if err := redirectServer.ListenAndServe(); err != nil {
+			log.Printf("HTTP redirect server error: %v", err)
+		}
+	}()
+	
 	// Create TLS configuration
 	tlsConfig := s.stealth.GetTLSConfig()
 	tlsConfig.Certificates = make([]tls.Certificate, 1)
@@ -108,11 +140,20 @@ func (s *VPNServer) Start() error {
 	}
 	tlsConfig.Certificates[0] = cert
 	
-	// Create server
+	// Create server with custom error handling
 	server := &http.Server{
 		Addr:      fmt.Sprintf("%s:%d", s.config.Host, s.config.Port),
 		TLSConfig: tlsConfig,
-		Handler:   nil, // Use default ServeMux
+		Handler:   http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			if r.TLS == nil {
+				http.Error(w, "HTTPS Required", http.StatusBadRequest)
+				return
+			}
+			http.DefaultServeMux.ServeHTTP(w, r)
+		}),
+		ReadTimeout:  30 * time.Second,
+		WriteTimeout: 30 * time.Second,
+		IdleTimeout:  120 * time.Second,
 	}
 	
 	log.Printf("Starting StealthVPN server on %s:%d", s.config.Host, s.config.Port)
